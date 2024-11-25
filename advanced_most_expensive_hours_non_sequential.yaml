@@ -86,7 +86,6 @@ automation:
                 data:
                   entity_id: input_select.set_sg_battery_forced_charge_discharge_cmd 
                   option: "Stop (default)"  # Make sure mode is stop
-              - delay: "00:00:02"  # 2 sekunders fördröjning
               - service: input_select.select_option
                 data:
                   entity_id: input_select.set_sg_ems_mode  
