@@ -1,0 +1,167 @@
+# Created by modifying advanced_cheapest_hours_non_sequential
+
+template:
+  - sensor:
+      - name: "Most expensive hours energy (non-sequential)"
+        unique_id: most_expensive_hours_energy_non_sequential
+        state: >
+          {%- set sensor = (this.attributes.get('sensor', 'sensor.nordpool_kwh_fi_eur_3_10_024') | string) -%}
+          {{ state_attr(sensor, 'tomorrow_valid') }}
+        attributes:
+          number_of_hours: 3 # CHANGEME
+          first_hour: 22  # CHANGEME
+          last_hour: 7  # CHANGEME
+          starting_today: true # Is the first_hour today (true / false). If false, first_hour needs to be before last_hour.
+          sensor: sensor.nordpool_kwh_se3_sek_3_10_025 # Make sure sensor values is correct
+          fail_safe_starting: '00:00' # If no nordpool data triggers anyway
+          list: >-
+            {%- set sensor = (this.attributes.get('sensor', 'sensor.nordpool_kwh_fi_eur_3_10_024') | string) -%}
+            {%- set numberOfHours = (this.attributes.get('number_of_hours', 4) | int) -%}
+            {%- set lastHour = (this.attributes.get('last_hour', 23) | int) -%}
+            {%- set firstHour = (this.attributes.get('first_hour', 0) | int) -%}
+            {%- set startingToday = (this.attributes.get('starting_today', false) | bool) -%}
+            {%- set ns = namespace(data=[], loopResult=[], res=[], loop=0) -%}
+            {%- if state_attr(sensor, 'tomorrow_valid') == true -%}
+              {%- set ns.starting = firstHour if startingToday else firstHour + 24 -%}
+              {%- set ns.ending = lastHour + 24 + 1 -%}
+              {%- set arr = state_attr(sensor, 'today') + state_attr(sensor, 'tomorrow') -%}
+              {%- for i in range(ns.starting, ns.ending) -%}
+                {%- set start = (today_at("00:00") + timedelta(hours=i)) -%}
+                {%- set end = (today_at("00:00") + timedelta(hours=i+1)) -%}
+                {%- set ns.data = ns.data + [{
+                  "start": (start | as_timestamp | timestamp_local),
+                  "end": (end | as_timestamp | timestamp_local),
+                  "price": arr[i]}] -%}
+              {%- endfor -%}
+              {%- set ns.data = (ns.data | sort(attribute='price', reverse=True))[:numberOfHours] | sort(attribute='start') -%}
+              {{ ns.data }}
+            {%- else -%}
+              {{ [] }}
+            {%- endif -%}
+          failsafe: >-
+            {%- set numberOfHours = (this.attributes.get('number_of_hours', 4) | int) -%}
+            {%- set start = (this.attributes.get('fail_safe_starting', '00:00') | string) -%}
+            {%- set startTime = (today_at(start) + timedelta(hours=24)) -%}
+            {%- set endTime = (today_at(start) + timedelta(hours=24 + numberOfHours)) -%}
+            {%- set res = {'start': (startTime | as_timestamp | timestamp_local), 'end': (endTime | as_timestamp | timestamp_local)} -%}
+            [{{ res }}]
+
+automation:
+  - id: 'most_expensive_hours_non_sequential_calendar_trigger'
+    alias: 'Most Expensive Hours: Calendar trigger (non-sequential)'
+    trigger:
+      - platform: calendar
+        event: start
+        entity_id: calendar.electricity
+      - platform: calendar
+        event: end
+        entity_id: calendar.electricity
+    condition:
+      - condition: template
+        value_template: >
+          {%- set sensorId = 'sensor.most_expensive_hours_energy_non_sequential' -%}
+          {{ (state_attr(sensorId, 'friendly_name') | string) == trigger.calendar_event.summary }}
+    action:
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ trigger.event == 'start' }}"
+            sequence:
+              - service: input_select.select_option
+                data:
+                  entity_id: input_select.set_sg_ems_mode  
+                  option: "Self-consumption mode (default)"  # Change EMS to Self-consumption to trigger discharge
+              - delay: "00:00:02"  # 2 sekunders fördröjning
+              - service: input_select.select_option
+                data:
+                  entity_id: input_select.set_sg_battery_forced_charge_discharge_cmd  
+                  option: "Stop (default)" # Make sure mode is stop
+
+          - conditions:
+              - condition: template
+                value_template: "{{ trigger.event == 'end' }}"
+            sequence:
+              - service: input_select.select_option
+                data:
+                  entity_id: input_select.set_sg_battery_forced_charge_discharge_cmd 
+                  option: "Stop (default)"  # Make sure mode is stop
+              - delay: "00:00:02"  # 2 sekunders fördröjning
+              - service: input_select.select_option
+                data:
+                  entity_id: input_select.set_sg_ems_mode  
+                  option: "Forced mode"  # Stop discharge by returning to forced mode
+    mode: single
+
+  - id: 'most_expensive_hours_non_sequential_set_sequence'
+    alias: 'Most Expensive Hours: Set next non-sequential expensive hours'
+    trigger:
+      - platform: time_pattern
+        hours: /1
+    condition:
+      - condition: template
+        value_template: >-
+          {{ state_attr(state_attr('sensor.most_expensive_hours_energy_non_sequential', 'sensor'), 'tomorrow_valid') == true }}
+      - condition: state
+        entity_id: input_boolean.expensive_hours_non_sequential_set
+        state: 'off'
+    action:
+      - service: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.expensive_hours_non_sequential_set
+      - service: script.expensive_hours_create_multi_calendar
+        data:
+          sensorId: "sensor.most_expensive_hours_energy_non_sequential"
+          attribute: "list"
+          summary: "{{ (state_attr('sensor.most_expensive_hours_energy_non_sequential', 'friendly_name') | string) }}"
+
+  - id: 'most_expensive_hours_non_sequential_failsafe'
+    alias: 'Most Expensive Hours: Failsafe for non-sequential'
+    trigger:
+      - platform: time
+        at: '23:15'
+    condition:
+      - condition: state
+        entity_id: input_boolean.expensive_hours_non_sequential_set
+        state: 'off'
+    action:
+      - service: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.expensive_hours_non_sequential_set
+      - service: script.expensive_hours_create_multi_calendar
+        data:
+          sensorId: "sensor.most_expensive_hours_energy_non_sequential"
+          attribute: "failsafe"
+          summary: "{{ (state_attr('sensor.most_expensive_hours_energy_non_sequential', 'friendly_name') | string) }}"
+
+  - id: 'most_expensive_hours_non_sequential_clear_set_flag'
+    alias: 'Most Expensive Hours: Reset helper for the next day'
+    trigger:
+      - platform: time
+        at: '01:15:00'
+    action:
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.expensive_hours_non_sequential_set
+
+input_boolean:
+  expensive_hours_non_sequential_set:
+    name: Non-sequential expensive hours set for the next day
+    icon: mdi:clock
+
+script:
+  expensive_hours_create_multi_calendar:
+    mode: parallel
+    sequence:
+      - repeat:
+          count: "{{ state_attr(sensorId, attribute) | count }}"
+          sequence:
+            - service: calendar.create_event
+              data:
+                start_date_time: >
+                  {{ state_attr(sensorId, attribute)[repeat.index-1].start | as_timestamp | timestamp_local }}
+                end_date_time: >
+                  {{ state_attr(sensorId, attribute)[repeat.index-1].end | as_timestamp | timestamp_local }}
+                summary: >-
+                  {{ summary }}
+              target:
+                entity_id: calendar.electricity

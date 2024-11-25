@@ -1,0 +1,61 @@
+# Loads default set of integrations. Do not remove.
+default_config:
+
+# Load frontend themes from the themes folder
+frontend:
+  themes: !include_dir_merge_named themes
+
+
+
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+homeassistant:
+  packages:
+    modbus_sungrow: !include integrations/modbus_sungrow.yaml
+    cheapest_non_sequential: !include advanced_cheapest_hours_non_sequential.yaml
+    most_expensive_non_sequential: !include advanced_most_expensive_hours_non_sequential.yaml
+
+template:
+  - sensor:
+      - name: "Nordpool Tomorrow Price Difference"
+        unique_id: nordpool_tomorrow_price_difference
+        state: >
+          {% set prices = state_attr('sensor.nordpool_kwh_se3_sek_3_10_025', 'tomorrow') %}
+          {% if prices %}
+            {% set min_price = prices | min | float(0) %}
+            {% set max_price = prices | max | float(0) %}
+            {{ max_price - min_price }}
+          {% else %}
+            unknown
+          {% endif %}
+        unit_of_measurement: "SEK"
+        attributes:
+          min_price: >
+            {% set prices = state_attr('sensor.nordpool_kwh_se3_sek_3_10_025', 'tomorrow') %}
+            {% if prices %}
+              {{ prices | min }}
+            {% else %}
+              unknown
+            {% endif %}
+          max_price: >
+            {% set prices = state_attr('sensor.nordpool_kwh_se3_sek_3_10_025', 'tomorrow') %}
+            {% if prices %}
+              {{ prices | max }}
+            {% else %}
+              unknown
+            {% endif %}
+
+
+
+nordpool:
+
+sensor:
+  - platform: nordpool
+    VAT: true
+    currency: "SEK"
+    price_in_cents: true
+    region: "SE3"
+    precision: 3
+    price_type: kWh
