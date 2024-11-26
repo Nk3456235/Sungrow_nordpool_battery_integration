@@ -93,7 +93,7 @@ automation:
                 value_template: >
                   {%- set next_event_start = state_attr('calendar.electricity', 'start') -%}
                   {%- set current_event_end = trigger.timestamp | int -%}
-                  {{ (next_event_start | int) > (current_event_end + 60) }}  # Check if the next event is not immediately after
+                  {{ (next_event_start | int) > (current_event_end + 60) }}  
     action:
       - choose:
           - conditions:
