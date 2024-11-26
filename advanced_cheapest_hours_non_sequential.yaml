@@ -118,7 +118,8 @@ automation:
                 data:
                   entity_id: input_select.set_sg_ems_mode  # Din input_select-entitet för EMS-läget
                   option: "Forced mode"  # Make sure mode is forced
-    mode: single
+              - delay: "00:00:02"  # 2-sekunders fördröjning
+    mode: queued
 
   - id: 'cheapest_hours_non_sequential_set_sequence'
     alias: 'Cheapest hours: Set next non-sequential cheapest hours'
