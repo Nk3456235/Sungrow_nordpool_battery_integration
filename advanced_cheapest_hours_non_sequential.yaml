@@ -70,9 +70,8 @@ template:
             [{{ res }}]
 
 automation:
-  - id: 'cheapest_hours_non_sequential_calendar_trigger'
-    alias: 'Cheapest hours: Calendar trigger (non-sequential)'
-    description: ''
+  - id: 'most_expensive_hours_non_sequential_calendar_trigger'
+    alias: 'Most Expensive Hours: Calendar trigger (non-sequential)'
     trigger:
       - platform: calendar
         event: start
@@ -83,43 +82,44 @@ automation:
     condition:
       - condition: template
         value_template: >
-          {%- set sensorId = 'sensor.cheapest_hours_energy_non_sequential' -%}
+          {%- set sensorId = 'sensor.most_expensive_hours_energy_non_sequential' -%}
           {{ (state_attr(sensorId, 'friendly_name') | string) == trigger.calendar_event.summary }}
-      - condition: template # Will only trigger if price difference exceeds number below
-        value_template: > 
-          {% set price_difference = states('sensor.nordpool_tomorrow_price_difference') | float(0) %}
-          {{ price_difference > 40 }} 
     action:
       - choose:
           - conditions:
-            - condition: template
-              value_template: "{{ trigger.event == 'start' }}"
+              - condition: template
+                value_template: "{{ trigger.event == 'start' }}"
             sequence:
               - service: input_select.select_option
                 data:
-                  entity_id: input_select.set_sg_ems_mode  # Your input_select entity for the inverter mode
-                  option: "Forced mode"  # Make sure mode is forced
-              - delay: "00:00:02"  # 2-second delay
+                  entity_id: input_select.set_sg_ems_mode  
+                  option: "Self-consumption mode (default)"  # Set EMS mode to Self-consumption to trigger discharge
+              - delay: "00:00:02"  
               - service: input_select.select_option
                 data:
-                  entity_id: input_select.set_sg_battery_forced_charge_discharge_cmd  # Your input_select entity for battery charging
-                  option: "Forced charge"  # Set the battery to forced charge
+                  entity_id: input_select.set_sg_battery_forced_charge_discharge_cmd  
+                  option: "Stop (default)" # Ensure mode is stop
 
           - conditions:
               - condition: template
                 value_template: "{{ trigger.event == 'end' }}"
+              - condition: template
+                value_template: >
+                  {%- set next_event_start = state_attr('calendar.electricity', 'start') -%}
+                  {%- set current_event_end = trigger.timestamp | int -%}
+                  {{ (next_event_start | int) > (current_event_end + 60) }}  # Check if the next event starts directly after the current event ends (within 1 minute gap)
             sequence:
               - service: input_select.select_option
                 data:
-                  entity_id: input_select.set_sg_battery_forced_charge_discharge_cmd  # Din input_select-entitet för batteriladdning/utladdning
-                  option: "Stop (default)"  # Stoppa Force charge
-              - delay: "00:00:02"  # 2-sekunders fördröjning
+                  entity_id: input_select.set_sg_battery_forced_charge_discharge_cmd 
+                  option: "Stop (default)"  # Ensure mode is stop
+              - delay: "00:00:02"  # Small delay to account for event end processing
               - service: input_select.select_option
                 data:
-                  entity_id: input_select.set_sg_ems_mode  # Din input_select-entitet för EMS-läget
-                  option: "Forced mode"  # Make sure mode is forced
-              - delay: "00:00:02"  # 2-sekunders fördröjning
-    mode: queued
+                  entity_id: input_select.set_sg_ems_mode  
+                  option: "Forced mode"  # Switch to Forced mode after event ends
+    mode: single
+
 
   - id: 'cheapest_hours_non_sequential_set_sequence'
     alias: 'Cheapest hours: Set next non-sequential cheapest hours'
