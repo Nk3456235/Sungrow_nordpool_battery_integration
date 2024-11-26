@@ -75,23 +75,29 @@ automation:
               - service: input_select.select_option
                 data:
                   entity_id: input_select.set_sg_battery_forced_charge_discharge_cmd  
-                  option: "Stop (default)" # Make sure mode is stop
+                  option: "Stop (default)" # Ensure mode is stop
 
           - conditions:
               - condition: template
                 value_template: "{{ trigger.event == 'end' }}"
+              - condition: template
+                value_template: >
+                  {%- set next_event_start = state_attr('calendar.electricity', 'start') -%}
+                  {%- set current_event_end = trigger.timestamp | int -%}
+                  {{ (next_event_start | int) > (current_event_end + 60) }}  # Check if the next event is not immediately after
             sequence:
               - service: input_select.select_option
                 data:
                   entity_id: input_select.set_sg_battery_forced_charge_discharge_cmd 
-                  option: "Stop (default)"  # Make sure mode is stop
-              - delay: "00:00:02"  
+                  option: "Stop (default)"  # Ensure mode is stop
+              - delay: "00:00:02"  # Small delay to account for event end processing
               - service: input_select.select_option
                 data:
                   entity_id: input_select.set_sg_ems_mode  
-                  option: "Forced mode"  # Stop discharge by returning to forced mode
-              - delay: "00:00:02"  
-    mode: queued
+                  option: "Forced mode"  # Switch to Forced mode after event ends
+
+    mode: single 
+
 
   - id: 'most_expensive_hours_non_sequential_set_sequence'
     alias: 'Most Expensive Hours: Set next non-sequential expensive hours'
