@@ -7,11 +7,11 @@ template:
           {%- set sensor = (this.attributes.get('sensor', 'sensor.nordpool_kwh_fi_eur_3_10_024') | string) -%}
           {{ state_attr(sensor, 'tomorrow_valid') }}
         attributes:
-          number_of_hours: 6
-          first_hour: 07
-          last_hour: 22
+          number_of_hours: 6 # CHANGEME
+          first_hour: 07 # CHANGEME
+          last_hour: 22  # CHANGEME
           starting_today: false
-          sensor: sensor.nordpool_kwh_se3_sek_3_10_025
+          sensor: sensor.nordpool_kwh_se3_sek_3_10_025 # CHANGEME
           fail_safe_starting: '00:00'
           list: >-
             {%- set sensor = (this.attributes.get('sensor', 'sensor.nordpool_kwh_fi_eur_3_10_024') | string) -%}
