@@ -1,5 +1,4 @@
 # Created by modifying advanced_cheapest_hours_non_sequential
-
 template:
   - sensor:
       - name: "Most expensive hours energy (non-sequential)"
@@ -8,12 +7,12 @@ template:
           {%- set sensor = (this.attributes.get('sensor', 'sensor.nordpool_kwh_fi_eur_3_10_024') | string) -%}
           {{ state_attr(sensor, 'tomorrow_valid') }}
         attributes:
-          number_of_hours: 3 # CHANGEME
-          first_hour: 22  # CHANGEME
-          last_hour: 7  # CHANGEME
-          starting_today: true # Is the first_hour today (true / false). If false, first_hour needs to be before last_hour.
-          sensor: sensor.nordpool_kwh_se3_sek_3_10_025 # Make sure sensor values is correct
-          fail_safe_starting: '00:00' # If no nordpool data triggers anyway
+          number_of_hours: 6
+          first_hour: 07
+          last_hour: 22
+          starting_today: false
+          sensor: sensor.nordpool_kwh_se3_sek_3_10_025
+          fail_safe_starting: '00:00'
           list: >-
             {%- set sensor = (this.attributes.get('sensor', 'sensor.nordpool_kwh_fi_eur_3_10_024') | string) -%}
             {%- set numberOfHours = (this.attributes.get('number_of_hours', 4) | int) -%}
@@ -97,7 +96,6 @@ automation:
                   option: "Forced mode"  # Switch to Forced mode after event ends
 
     mode: single 
-
 
   - id: 'most_expensive_hours_non_sequential_set_sequence'
     alias: 'Most Expensive Hours: Set next non-sequential expensive hours'
