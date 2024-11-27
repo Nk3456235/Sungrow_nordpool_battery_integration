@@ -1,4 +1,3 @@
-# Created by modifying advanced_cheapest_hours_non_sequential
 template:
   - sensor:
       - name: "Most expensive hours energy (non-sequential)"
@@ -7,11 +6,11 @@ template:
           {%- set sensor = (this.attributes.get('sensor', 'sensor.nordpool_kwh_fi_eur_3_10_024') | string) -%}
           {{ state_attr(sensor, 'tomorrow_valid') }}
         attributes:
-          number_of_hours: 6 # CHANGEME
-          first_hour: 07 # CHANGEME
-          last_hour: 22  # CHANGEME
+          number_of_hours: 7
+          first_hour: 07
+          last_hour: 22
           starting_today: false
-          sensor: sensor.nordpool_kwh_se3_sek_3_10_025 # CHANGEME
+          sensor: sensor.nordpool_kwh_se3_sek_3_10_025
           fail_safe_starting: '00:00'
           list: >-
             {%- set sensor = (this.attributes.get('sensor', 'sensor.nordpool_kwh_fi_eur_3_10_024') | string) -%}
@@ -60,6 +59,20 @@ automation:
         value_template: >
           {%- set sensorId = 'sensor.most_expensive_hours_energy_non_sequential' -%}
           {{ (state_attr(sensorId, 'friendly_name') | string) == trigger.calendar_event.summary }}
+      - condition: or
+        conditions:
+          - condition: time
+            after: '06:00:00'
+            before: '13:00:00'  # If current time is between 06:00 and 13:00, proceed
+          - condition: and
+            conditions:
+              - condition: time
+                after: '14:00:00'
+                before: '22:00:00'  # If current time is between 14:00 and 22:00, check sensor value, new nordpool data available
+              - condition: template
+                value_template: >
+                  {% set sensor_value = states('sensor.nordpool_price_difference_today_most_expensive_vs_tomorrow_cheapest') | float %}
+                  {{ sensor_value >= 40 }}  
     action:
       - choose:
           - conditions:
@@ -69,33 +82,29 @@ automation:
               - service: input_select.select_option
                 data:
                   entity_id: input_select.set_sg_ems_mode  
-                  option: "Self-consumption mode (default)"  # Set EMS mode to Self-consumption to trigger discharge
-              - delay: "00:00:02"  
+                  option: "Self-consumption mode (default)"  # Set EMS mode to Self-consumption to trigger discharge 
               - service: input_select.select_option
                 data:
                   entity_id: input_select.set_sg_battery_forced_charge_discharge_cmd  
                   option: "Stop (default)" # Ensure mode is stop
+              - delay: "00:00:02" 
 
           - conditions:
               - condition: template
                 value_template: "{{ trigger.event == 'end' }}"
-              - condition: template
-                value_template: >
-                  {%- set next_event_start = state_attr('calendar.electricity', 'start') -%}
-                  {%- set current_event_end = trigger.timestamp | int -%}
-                  {{ (next_event_start | int) > (current_event_end + 60) }}  
             sequence:
-              - service: input_select.select_option
-                data:
-                  entity_id: input_select.set_sg_battery_forced_charge_discharge_cmd 
-                  option: "Stop (default)"  # Ensure mode is stop
-              - delay: "00:00:02"  # Small delay to account for event end processing
               - service: input_select.select_option
                 data:
                   entity_id: input_select.set_sg_ems_mode  
                   option: "Forced mode"  # Switch to Forced mode after event ends
+              - service: input_select.select_option
+                data:
+                  entity_id: input_select.set_sg_battery_forced_charge_discharge_cmd 
+                  option: "Stop (default)"  # Ensure mode is stop
+              - delay: "00:00:02" 
+            
+    mode: queued
 
-    mode: single 
 
   - id: 'most_expensive_hours_non_sequential_set_sequence'
     alias: 'Most Expensive Hours: Set next non-sequential expensive hours'
@@ -170,3 +179,4 @@ script:
                   {{ summary }}
               target:
                 entity_id: calendar.electricity
+
