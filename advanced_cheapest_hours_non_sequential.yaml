@@ -88,12 +88,8 @@ automation:
       - condition: template # Will only trigger if price difference exceeds number below
         value_template: > 
           {% set price_difference = states('sensor.nordpool_tomorrow_price_difference') | float(0) %}
-          {{ price_difference > 40 }} 
-      - condition: template
-                value_template: >
-                  {%- set next_event_start = state_attr('calendar.electricity', 'start') -%}
-                  {%- set current_event_end = trigger.timestamp | int -%}
-                  {{ (next_event_start | int) > (current_event_end + 60) }}  
+          {{ price_difference > 40 }}
+
     action:
       - choose:
           - conditions:
@@ -104,31 +100,26 @@ automation:
                 data:
                   entity_id: input_select.set_sg_ems_mode  # Your input_select entity for the inverter mode
                   option: "Forced mode"  # Make sure mode is forced
-              - delay: "00:00:02"  # 2-second delay
               - service: input_select.select_option
                 data:
                   entity_id: input_select.set_sg_battery_forced_charge_discharge_cmd  # Your input_select entity for battery charging
                   option: "Forced charge"  # Set the battery to forced charge
+              - delay: "00:00:02" 
+
           - conditions:
               - condition: template
-                value_template: "{{ trigger.event == 'end' }}"
-              - condition: template
-                value_template: >
-                  {%- set next_event_start = state_attr('calendar.electricity', 'start') -%}
-                  {%- set current_event_end = trigger.timestamp | int -%}
-                  {{ (next_event_start | int) > (current_event_end + 60) }}  # Check if the next event is not immediately after
+                value_template: "{{ trigger.event == 'end' }}" 
             sequence:
               - service: input_select.select_option
                 data:
                   entity_id: input_select.set_sg_battery_forced_charge_discharge_cmd  # Din input_select-entitet för batteriladdning/utladdning
                   option: "Stop (default)"  # Stoppa Force charge
-              - delay: "00:00:02"  # 2-sekunders fördröjning
               - service: input_select.select_option
                 data:
                   entity_id: input_select.set_sg_ems_mode  # Din input_select-entitet för EMS-läget
                   option: "Forced mode"  # Make sure mode is forced
-    mode: single
-
+              - delay: "00:00:02"  # 2-sekunders fördröjning
+    mode: queued
 
   - id: 'cheapest_hours_non_sequential_set_sequence'
     alias: 'Cheapest hours: Set next non-sequential cheapest hours'
