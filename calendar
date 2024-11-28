@@ -1,0 +1,11 @@
+- condition: template
+  value_template: >
+    {%- set calendar_entity = 'calendar.electricity' -%}
+    {%- set now = now() -%}
+    {%- set events = state_attr(calendar_entity, 'events') -%}
+    {%- set upcoming_event = events | selectattr('start', 'ge', now) | sort(attribute='start') | first -%}
+    {%- if upcoming_event is not none and (upcoming_event.start - now).total_seconds() <= 1800 %}
+      true  # If there's an upcoming event within the next 30 minutes, continue charging
+    {%- else %}
+      false  # Otherwise, stop charging or follow regular behavior
+    {%- endif %}
