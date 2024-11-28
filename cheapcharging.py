@@ -57,11 +57,20 @@ class CheapChargingApp(hass.Hass):
         sensor_value = f"{hour_1_start} to {hour_2_start}"
         self.set_state("sensor.cheap_chosen_hours_day_charging", state=sensor_value)
         
-        # Start the charging process
+        # Start the charging process using the input_select actions
         self.log(f"Starting charging for the hours {sensor_value}")
-        self.turn_on("switch.charging_switch")  # Replace with your actual charging switch entity
         
-        # Independently schedule the stop for each hour, regardless of whether they are sequential or not
+        # Set the EMS mode to Forced mode
+        self.call_service("input_select/select_option", 
+                          entity_id="input_select.set_sg_ems_mode", 
+                          option="Forced mode")
+
+        # Set the battery charging command to Forced charge
+        self.call_service("input_select/select_option", 
+                          entity_id="input_select.set_sg_battery_forced_charge_discharge_cmd", 
+                          option="Forced charge")
+
+        # Schedule the stop for each of the two hours (even if non-sequential)
         self.run_in(self.stop_charging, self.calculate_seconds_until_end(cheapest_hours[0]['end'], 0))
         self.run_in(self.stop_charging, self.calculate_seconds_until_end(cheapest_hours[1]['end'], 1))
 
@@ -69,7 +78,18 @@ class CheapChargingApp(hass.Hass):
         """Stops charging after the hour ends."""
         hour_index = kwargs["data"]
         self.log(f"Stopping charging for hour {hour_index + 1}")
-        self.turn_off("switch.charging_switch")  # Replace with your actual charging switch entity
+        
+        # Stop charging by setting the modes back to "Stop" and "Forced mode"
+        self.call_service("input_select/select_option", 
+                          entity_id="input_select.set_sg_battery_forced_charge_discharge_cmd", 
+                          option="Stop (default)")  # Set to stop charge
+
+        self.call_service("input_select/select_option", 
+                          entity_id="input_select.set_sg_ems_mode", 
+                          option="Forced mode")  # Ensure mode is forced
+        
+        # Optional: Add a small delay to allow the system to process the change
+        self.call_service("script.turn_on", entity_id="script.delay_2_seconds")
 
     def calculate_seconds_until_end(self, end_time, hour_index):
         """Calculates the seconds until the hour ends."""
@@ -86,7 +106,6 @@ class CheapChargingApp(hass.Hass):
     def create_cheap_hours_sensor(self):
         """Creates the cheap chosen hours sensor."""
         self.set_state("sensor.cheap_chosen_hours_day_charging", state="No cheap hours selected yet")
-
 
 
 
