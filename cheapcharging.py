@@ -109,6 +109,7 @@ class CheapChargingApp(hass.Hass):
 
 
 
+
 cheap_charging_app:
   module: cheap_charging_app
   class: CheapChargingApp
