@@ -100,11 +100,11 @@ automation:
                 data:
                   entity_id: input_select.set_sg_ems_mode  # Your input_select entity for the inverter mode
                   option: "Forced mode"  # Make sure mode is forced
+              - delay: "00:00:02"  # 2-sekunders fördröjning
               - service: input_select.select_option
                 data:
                   entity_id: input_select.set_sg_battery_forced_charge_discharge_cmd  # Your input_select entity for battery charging
                   option: "Forced charge"  # Set the battery to forced charge
-              - delay: "00:00:02" 
 
           - conditions:
               - condition: template
@@ -114,12 +114,13 @@ automation:
                 data:
                   entity_id: input_select.set_sg_battery_forced_charge_discharge_cmd  # Din input_select-entitet för batteriladdning/utladdning
                   option: "Stop (default)"  # Stoppa Force charge
+              - delay: "00:00:02"  # 2-sekunders fördröjning
               - service: input_select.select_option
                 data:
                   entity_id: input_select.set_sg_ems_mode  # Din input_select-entitet för EMS-läget
                   option: "Forced mode"  # Make sure mode is forced
-              - delay: "00:00:02"  # 2-sekunders fördröjning
-    mode: queued
+              
+    mode: single
 
   - id: 'cheapest_hours_non_sequential_set_sequence'
     alias: 'Cheapest hours: Set next non-sequential cheapest hours'
