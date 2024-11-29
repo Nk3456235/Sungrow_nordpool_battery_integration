@@ -113,3 +113,13 @@ class CheapChargingApp(hass.Hass):
 cheap_charging_app:
   module: cheap_charging_app
   class: CheapChargingApp
+
+
+sensor:
+  - platform: template
+    sensors:
+      cheap_chosen_hours_day_charging:
+        friendly_name: "Cheap Chosen Hours for Charging"
+        value_template: "{{ states('sensor.cheap_chosen_hours_day_charging') }}"
+        icon_template: "mdi:flash-circle"  # Choose any icon you like for display
+
