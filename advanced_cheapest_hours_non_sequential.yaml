@@ -10,9 +10,9 @@ template:
           {{ state_attr(sensor, 'tomorrow_valid') }}
         attributes:
           number_of_hours: 3 # CHANGEME
-          first_hour: 22  # CHANGEME
+          first_hour: 00  # CHANGEME Note however condition to only start charging if price difference is enough will not work if set to previous day like 22 or 23
           last_hour: 7  # CHANGEME
-          starting_today: true # Is the first_hour today (true / false). If false, first_hour needs to be before last_hour.
+          starting_today: false # Is the first_hour today (true / false). If false, first_hour needs to be before last_hour.
           sensor: sensor.nordpool_kwh_se3_sek_3_10_025 # Make sure sensor values is correct
           fail_safe_starting: '00:00' # If no nordpool data triggers anyway
           list: >-
@@ -85,22 +85,24 @@ automation:
         value_template: >
           {%- set sensorId = 'sensor.cheapest_hours_energy_non_sequential' -%}
           {{ (state_attr(sensorId, 'friendly_name') | string) == trigger.calendar_event.summary }}
-      - condition: template # Will only trigger if price difference exceeds number below
-        value_template: > 
-          {% set price_difference = states('sensor.nordpool_tomorrow_price_difference') | float(0) %}
-          {{ price_difference > 40 }}
+
 
     action:
       - choose:
           - conditions:
-            - condition: template
-              value_template: "{{ trigger.event == 'start' }}"
+              - condition: template
+                value_template: "{{ trigger.event == 'start' }}"
             sequence:
+              - delay: "00:00:08"
+              - condition: template # Only start charging if price difference is enough, adjust price difference level below
+                value_template: >
+                  {% set sensor_value = states('sensor.nordpool_today_price_difference') %}
+                  {{ sensor_value != 'unknown' and sensor_value | float >= 40 }} 
               - service: input_select.select_option
                 data:
                   entity_id: input_select.set_sg_ems_mode  # Your input_select entity for the inverter mode
                   option: "Forced mode"  # Make sure mode is forced
-              - delay: "00:00:02"  # 2-sekunders fördröjning
+              - delay: "00:00:02"
               - service: input_select.select_option
                 data:
                   entity_id: input_select.set_sg_battery_forced_charge_discharge_cmd  # Your input_select entity for battery charging
@@ -112,15 +114,16 @@ automation:
             sequence:
               - service: input_select.select_option
                 data:
-                  entity_id: input_select.set_sg_battery_forced_charge_discharge_cmd  # Din input_select-entitet för batteriladdning/utladdning
-                  option: "Stop (default)"  # Stoppa Force charge
-              - delay: "00:00:02"  # 2-sekunders fördröjning
+                  entity_id: input_select.set_sg_battery_forced_charge_discharge_cmd  
+                  option: "Stop (default)"  
+              - delay: "00:00:02"
               - service: input_select.select_option
                 data:
-                  entity_id: input_select.set_sg_ems_mode  # Din input_select-entitet för EMS-läget
-                  option: "Forced mode"  # Make sure mode is forced
-              
+                  entity_id: input_select.set_sg_ems_mode  
+                  option: "Forced mode"  
+
     mode: single
+
 
   - id: 'cheapest_hours_non_sequential_set_sequence'
     alias: 'Cheapest hours: Set next non-sequential cheapest hours'
