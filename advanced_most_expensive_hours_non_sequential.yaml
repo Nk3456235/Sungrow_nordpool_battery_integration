@@ -103,7 +103,7 @@ automation:
                           value_template: >
                             {% set sensor_value = states('sensor.nordpool_price_difference_today_most_expensive_vs_tomorrow_cheapest') %}
                             {{ sensor_value != 'unknown' and sensor_value | float >= 40 }}  
-                        - condition: template # Make sure price is at least above 50 morning hours when above price check not in play
+                        - condition: template # Make sure price is at least above 50 when above price check not in play
                         value_template: >
                           {% set sensor_value = states('sensor.nordpool_kwh_se3_sek_3_10_025') %}
                           {{ sensor_value != 'unknown' and sensor_value | float >= 50 }}  
