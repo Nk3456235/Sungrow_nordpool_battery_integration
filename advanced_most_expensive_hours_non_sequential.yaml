@@ -93,7 +93,7 @@ automation:
                   conditions:
                     - condition: time
                       after: '06:00:00'
-                      before: '13:00:00'  # If current time is between 06:00 and 13:00, proceed
+                      before: '13:59:59'  # If current time is between 06:00 and 13:00, proceed
                     - condition: and
                       conditions:
                         - condition: time
@@ -103,6 +103,10 @@ automation:
                           value_template: >
                             {% set sensor_value = states('sensor.nordpool_price_difference_today_most_expensive_vs_tomorrow_cheapest') %}
                             {{ sensor_value != 'unknown' and sensor_value | float >= 40 }}  # Only if price difference is enough
+                        - condition: template
+                        value_template: >
+                          {% set sensor_value = states('sensor.nordpool_kwh_se3_sek_3_10_025') %}
+                          {{ sensor_value != 'unknown' and sensor_value | float >= 50 }}  # Make sure price is at least above 50 morning hours when above price check not in play
                 - delay: "00:00:08"
                 - service: input_select.select_option
                   data:
