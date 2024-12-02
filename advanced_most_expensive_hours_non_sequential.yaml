@@ -82,58 +82,54 @@ automation:
         value_template: >
           {%- set sensorId = 'sensor.most_expensive_hours_energy_non_sequential' -%}
           {{ (state_attr(sensorId, 'friendly_name') | string) == trigger.calendar_event.summary }}
-                  
     action:
       - choose:
-            - conditions:
-                - condition: template
-                  value_template: "{{ trigger.event == 'start' }}"
-              sequence:
-                - condition: or
-                  conditions:
-                    - condition: time
-                      after: '06:00:00'
-                      before: '13:59:59'  # If current time is between 06:00 and 13:00, proceed
-                    - condition: and
-                      conditions:
-                        - condition: time
-                          after: '14:00:00'
-                          before: '22:00:00'  # If current time is between 14:00 and 22:00, check sensor value
-                        - condition: template # Only if today vs tomorrow price difference is 40 or more
-                          value_template: >
-                            {% set sensor_value = states('sensor.nordpool_price_difference_today_most_expensive_vs_tomorrow_cheapest') %}
-                            {{ sensor_value != 'unknown' and sensor_value | float >= 40 }}  
-                        - condition: template # Make sure price is at least above 50 when above price check not in play
+          - conditions:
+              - condition: template
+                value_template: "{{ trigger.event == 'start' }}"
+            sequence:
+              - condition: or
+                conditions:
+                  - condition: time
+                    after: '06:00:00'
+                    before: '13:59:59'  # If current time is between 06:00 and 13:00, proceed
+                  - condition: and
+                    conditions:
+                      - condition: time
+                        after: '14:00:00'
+                        before: '22:00:00'  # If current time is between 14:00 and 22:00, check sensor value
+                      - condition: template # Only if today vs tomorrow price difference is 40 or more
+                        value_template: >
+                          {% set sensor_value = states('sensor.nordpool_price_difference_today_most_expensive_vs_tomorrow_cheapest') %}
+                          {{ sensor_value != 'unknown' and sensor_value | float >= 40 }}  
+                      - condition: template # Make sure price is at least above 50 when above price check not in play
                         value_template: >
                           {% set sensor_value = states('sensor.nordpool_kwh_se3_sek_3_10_025') %}
                           {{ sensor_value != 'unknown' and sensor_value | float >= 50 }}  
-                - delay: "00:00:08"
-                - service: input_select.select_option
-                  data:
-                    entity_id: input_select.set_sg_ems_mode
-                    option: "Self-consumption mode (default)"
-                - delay: "00:00:02"
-                - service: input_select.select_option
-                  data:
-                    entity_id: input_select.set_sg_battery_forced_charge_discharge_cmd
-                    option: "Stop (default)"
-  
-            - conditions:
-                - condition: template
-                  value_template: "{{ trigger.event == 'end' }}"
-              sequence:
-                - service: input_select.select_option
-                  data:
-                    entity_id: input_select.set_sg_ems_mode  
-                    option: "Forced mode"
-                - delay: "00:00:02" 
-                - service: input_select.select_option
-                  data:
-                    entity_id: input_select.set_sg_battery_forced_charge_discharge_cmd 
-                    option: "Stop (default)"
-      mode: single
-  
-
+              - delay: "00:00:08"
+              - service: input_select.select_option
+                data:
+                  entity_id: input_select.set_sg_ems_mode
+                  option: "Self-consumption mode (default)"
+              - delay: "00:00:02"
+              - service: input_select.select_option
+                data:
+                  entity_id: input_select.set_sg_battery_forced_charge_discharge_cmd
+                  option: "Stop (default)"
+          - conditions:
+              - condition: template
+                value_template: "{{ trigger.event == 'end' }}"
+            sequence:
+              - service: input_select.select_option
+                data:
+                  entity_id: input_select.set_sg_ems_mode  
+                  option: "Forced mode"
+              - delay: "00:00:02" 
+              - service: input_select.select_option
+                data:
+                  entity_id: input_select.set_sg_battery_forced_charge_discharge_cmd 
+                  option: "Stop (default)"
+    mode: single
 
   - id: 'most_expensive_hours_non_sequential_set_sequence'
     alias: 'Most Expensive Hours: Set next non-sequential expensive hours'
@@ -208,4 +204,3 @@ script:
                   {{ summary }}
               target:
                 entity_id: calendar.electricity
-
