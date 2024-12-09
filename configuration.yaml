@@ -19,10 +19,11 @@ homeassistant:
 
 template:
   - sensor:
-      - name: "Nordpool Tomorrow Price Difference"
-        unique_id: nordpool_tomorrow_price_difference
+      # Existing Nordpool sensors
+      - name: "Nordpool Today Price Difference"
+        unique_id: nordpool_today_price_difference
         state: >
-          {% set prices = state_attr('sensor.nordpool_kwh_se3_sek_3_10_025', 'tomorrow') %}
+          {% set prices = state_attr('sensor.nordpool_kwh_se3_sek_3_10_025', 'today') %}
           {% if prices %}
             {% set min_price = prices | min | float(0) %}
             {% set max_price = prices | max | float(0) %}
@@ -33,19 +34,55 @@ template:
         unit_of_measurement: "SEK"
         attributes:
           min_price: >
-            {% set prices = state_attr('sensor.nordpool_kwh_se3_sek_3_10_025', 'tomorrow') %}
+            {% set prices = state_attr('sensor.nordpool_kwh_se3_sek_3_10_025', 'today') %}
             {% if prices %}
               {{ prices | min }}
             {% else %}
               unknown
             {% endif %}
           max_price: >
-            {% set prices = state_attr('sensor.nordpool_kwh_se3_sek_3_10_025', 'tomorrow') %}
+            {% set prices = state_attr('sensor.nordpool_kwh_se3_sek_3_10_025', 'today') %}
             {% if prices %}
               {{ prices | max }}
             {% else %}
               unknown
             {% endif %}
+      
+      - name: "Nordpool Price Difference Today Most Expensive vs Tomorrow Cheapest"
+        unique_id: nordpool_price_difference_today_most_expensive_vs_tomorrow_cheapest
+        state: >
+          {% set today_prices = state_attr('sensor.nordpool_kwh_se3_sek_3_10_025', 'today') %}
+          {% set tomorrow_prices = state_attr('sensor.nordpool_kwh_se3_sek_3_10_025', 'tomorrow') %}
+          
+          {% if today_prices and tomorrow_prices %}
+            {# Find the most expensive price today #}
+            {% set max_today = today_prices | max %}
+            
+            {# Find the cheapest price tomorrow #}
+            {% set min_tomorrow = tomorrow_prices | min %}
+            
+            {# Calculate the difference between today's most expensive and tomorrow's cheapest price #}
+            {{ max_today - min_tomorrow }}
+          {% else %}
+            unknown
+          {% endif %}
+        unit_of_measurement: "SEK"
+        attributes:
+          max_today: >
+            {% set today_prices = state_attr('sensor.nordpool_kwh_se3_sek_3_10_025', 'today') %}
+            {% if today_prices %}
+              {{ today_prices | max }}
+            {% else %}
+              unknown
+            {% endif %}
+          min_tomorrow: >
+            {% set tomorrow_prices = state_attr('sensor.nordpool_kwh_se3_sek_3_10_025', 'tomorrow') %}
+            {% if tomorrow_prices %}
+              {{ tomorrow_prices | min }}
+            {% else %}
+              unknown
+            {% endif %}
+      
 
 
 
