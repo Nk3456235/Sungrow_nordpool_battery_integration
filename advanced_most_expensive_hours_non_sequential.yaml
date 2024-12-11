@@ -92,12 +92,12 @@ automation:
                 conditions:
                   - condition: time
                     after: '06:00:00'
-                    before: '13:59:59'  # If current time is between 06:00 and 13:00, proceed
+                    before: '14:59:59'  # If current time is between 06:00 and 14:00, proceed
                   - condition: and
                     conditions:
                       - condition: time
-                        after: '14:00:00'
-                        before: '22:00:00'  # If current time is between 14:00 and 22:00, check sensor value
+                        after: '15:00:00'
+                        before: '22:00:00'  # If current time is between 15:00 and 22:00, check sensor value
                       - condition: template # Only if today vs tomorrow price difference is 40 or more
                         value_template: >
                           {% set sensor_value = states('sensor.nordpool_price_difference_today_most_expensive_vs_tomorrow_cheapest') %}
