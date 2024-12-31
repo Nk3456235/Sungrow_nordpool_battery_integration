@@ -1,0 +1,37 @@
+type: custom:apexcharts-card
+hours_12: false
+header:
+  show: true
+  title: Elpris nordpol (öre/kWh)
+  show_states: true
+now:
+  show: true
+  color: "#ff0000"
+  label: Nu
+graph_span: 2d
+span:
+  start: day
+series:
+  - entity: sensor.nordpool_kwh_se3_sek_3_10_025
+    name: Idag
+    unit: öre/kWh
+    data_generator: |
+      return entity.attributes.raw_today.map((entry) => {
+        return [new Date(entry.start), entry.value];
+      });
+    type: column
+    show:
+      legend_value: false
+      in_header: false
+    extend_to: end
+  - entity: sensor.nordpool_kwh_se3_sek_3_10_025
+    name: Imorgon
+    unit: öre/kWh
+    data_generator: |
+      return entity.attributes.raw_tomorrow.map((entry) => {
+        return [new Date(entry.start), entry.value];
+      });
+    type: column
+    show:
+      legend_value: false
+      in_header: false
