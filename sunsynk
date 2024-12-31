@@ -1,0 +1,85 @@
+type: custom:sunsynk-power-flow-card
+cardstyle: compact
+show_solar: true
+battery:
+  shutdown_soc: 1
+  show_daily: true
+  colour:
+    - 27
+    - 172
+    - 44
+  show_remaining_energy: true
+  animate: false
+  linear_gradient: true
+  show_absolute: false
+  auto_scale: true
+  hide_soc: true
+  soc_end_of_charge: 100
+  energy: 16000
+  count: 1
+  shutdown_soc_offgrid: 0
+  dynamic_colour: false
+  max_power: 7000
+solar:
+  show_daily: true
+  mppts: 2
+  pv1_name: South
+  pv2_name: East
+  colour:
+    - 249
+    - 198
+    - 16
+  dynamic_colour: true
+  auto_scale: true
+  max_power: 10000
+  pv1_max_power: 6000
+  pv2_max_power: 6000
+  off_threshold: 10
+load:
+  show_daily: true
+grid:
+  show_daily_buy: true
+  show_daily_sell: true
+  show_nonessential: true
+  show_absolute: false
+entities:
+  inverter_power_175: sensor.total_power_solar_and_battery
+  inverter_status_59: sensor.sungrow_inverter_state
+  day_battery_charge_70: sensor.daily_battery_charge
+  day_battery_discharge_71: sensor.daily_battery_discharge
+  battery_voltage_183: sensor.battery_voltage
+  battery_soc_184: sensor.battery_level_nominal
+  battery_power_190: sensor.battery_power_raw
+  battery_current_191: sensor.battery_current
+  grid_power_169: sensor.meter_active_power
+  day_grid_import_76: sensor.daily_imported_energy
+  day_grid_export_77: sensor.daily_exported_energy
+  grid_ct_power_172: sensor.import_power
+  day_load_energy_84: sensor.daily_consumed_energy
+  essential_power: none
+  aux_power_166: sensor.sunsynk_aux_power
+  day_pv_energy_108: sensor.daily_pv_generation
+  pv1_power_186: sensor.mppt1_power
+  pv2_power_187: sensor.mppt2_power
+  pv1_voltage_109: sensor.mppt1_voltage
+  pv1_current_110: sensor.mppt1_current
+  pv2_voltage_111: sensor.mppt2_voltage
+  pv2_current_112: sensor.mppt2_current
+  battery_temp_182: sensor.battery_temperature
+  dc_transformer_temp_90: sensor.inverter_temperature
+  battery_soh: sensor.battery_state_of_health
+large_font: false
+wide: false
+show_battery: true
+show_grid: true
+decimal_places: 2
+decimal_places_energy: 2
+inverter:
+  three_phase: true
+  modern: true
+  model: sungrow
+  colour:
+    - 175
+    - 78
+    - 14
+  autarky: "no"
